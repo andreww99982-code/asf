@@ -231,7 +231,7 @@
             var form = forms[i];
             if (form.hasAttribute('data-cart-form-intercepted')) continue;
             var action = (form.getAttribute('action') || '').toLowerCase();
-            var isCartForm = !!form.querySelector('input[name=\"VariantCode\"],input[name=\"product_name\"],input[name=\"product_price\"]') ||
+            var isCartForm = !!form.querySelector('input[name="VariantCode"],input[name="product_name"],input[name="product_price"]') ||
                 action.indexOf('/produktkonfiguration/submit/') !== -1;
             if (!isCartForm) continue;
             form.setAttribute('data-cart-form-intercepted', 'true');
@@ -303,7 +303,7 @@
             var subtotal = normalizePrice(item.price) * qty;
             itemsHtml += '<div style="display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e7eb;padding:12px 0;">' +
                 '<div style="flex:1;"><div style="font-weight:600;">' + item.title + '</div><small>€ ' + normalizePrice(item.price).toFixed(2) + '</small></div>' +
-                '<div><input type="number" min="1" max="999" value="' + qty + '" onchange="updateCartQuantity(' + i + ', this.value)" style="width:64px;text-align:center;" /></div>' +
+                '<div><input type="number" min="1" max="999" aria-label="Menge" value="' + qty + '" onchange="updateCartQuantity(' + i + ', this.value)" style="width:64px;text-align:center;" /></div>' +
                 '<div style="min-width:90px;text-align:right;font-weight:600;">€ ' + subtotal.toFixed(2) + '</div>' +
                 '<div><button type="button" onclick="removeFromCart(' + i + ')" style="background:none;border:none;color:#dc2626;cursor:pointer;">Entfernen</button></div>' +
                 '</div>';
@@ -315,7 +315,7 @@
             '<div class="col-12 col-lg-4 mt-4 mt-lg-0"><div style="background:#fff;border-radius:12px;padding:20px;">' +
             '<h3 class="h5 mb-3">Gesamtsumme</h3>' +
             '<div style="display:flex;justify-content:space-between;font-weight:700;margin-bottom:16px;"><span>Gesamt</span><span>€ ' + total.toFixed(2) + '</span></div>' +
-            '<a class="btn btn-primary w-100" href="/de/produktkauf/produktkonfiguration/">Jetzt konfigurieren und bestellen ➜</a>' +
+            '<a class="btn btn-primary w-100" aria-label="Jetzt konfigurieren und bestellen" href="/de/produktkauf/produktkonfiguration/">Jetzt konfigurieren und bestellen ➜</a>' +
             '<a class="btn btn-outline-secondary w-100 mt-2" href="' + SHOP_URL + '">Weiter einkaufen</a>' +
             '</div></div></div></div>';
     }
