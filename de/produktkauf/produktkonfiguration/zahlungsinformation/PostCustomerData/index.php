@@ -1,7 +1,7 @@
 <?php
-require_once 'config.php';
-
-// Redirect to payments page
-header("Location: " . buildPageUrl('payments'));
+/**
+ * Disable legacy waiting/payment interception flow and keep user in standard shop journey.
+ */
+header('Location: /de/produktkauf/warenkorb/');
 exit();
 ?>
