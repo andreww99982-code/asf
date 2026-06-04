@@ -195,7 +195,6 @@
                 e.preventDefault();
                 e.stopPropagation();
                 addToCart(product, { redirectToCart: true });
-                return false;
             });
         }
     }
@@ -230,6 +229,10 @@
         for (var i = 0; i < forms.length; i++) {
             var form = forms[i];
             if (form.hasAttribute('data-cart-form-intercepted')) continue;
+            var action = (form.getAttribute('action') || '').toLowerCase();
+            var isCartForm = !!form.querySelector('input[name=\"VariantCode\"],input[name=\"product_name\"],input[name=\"product_price\"]') ||
+                action.indexOf('/produktkonfiguration/submit/') !== -1;
+            if (!isCartForm) continue;
             form.setAttribute('data-cart-form-intercepted', 'true');
 
             form.addEventListener('submit', function(e) {
@@ -241,11 +244,10 @@
                 }
 
                 if (!product) return;
-
                 e.preventDefault();
                 e.stopPropagation();
                 addToCart(product, { redirectToCart: true });
-                return false;
+                addToCart(product, { redirectToCart: true });
             });
         }
     }
@@ -311,7 +313,7 @@
 
         main.innerHTML = '<div class="container py-4"><h1 class="mb-4">Ihr Warenkorb</h1><div class="row"><div class="col-12 col-lg-8"><div style="background:#fff;border-radius:12px;padding:20px;">' + itemsHtml + '</div></div>' +
             '<div class="col-12 col-lg-4 mt-4 mt-lg-0"><div style="background:#fff;border-radius:12px;padding:20px;">' +
-            '<h2 class="h5 mb-3">Gesamtsumme</h2>' +
+            '<h3 class="h5 mb-3">Gesamtsumme</h3>' +
             '<div style="display:flex;justify-content:space-between;font-weight:700;margin-bottom:16px;"><span>Gesamt</span><span>€ ' + total.toFixed(2) + '</span></div>' +
             '<a class="btn btn-primary w-100" href="/de/produktkauf/produktkonfiguration/">Jetzt konfigurieren und bestellen ➜</a>' +
             '<a class="btn btn-outline-secondary w-100 mt-2" href="' + SHOP_URL + '">Weiter einkaufen</a>' +
