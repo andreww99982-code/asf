@@ -2,319 +2,344 @@
 //# sourceMappingURL=ms20.js.map
 // ==================== ASFINAG CART - ЛЁГКАЯ ВЕРСИЯ ====================
 (function() {
-    // Проверяем, что это не iframe и страница загружена
     if (window.top !== window.self) return;
-    
-    // Хранилище корзины
-    let cart = [];
-    
-    try {
-        cart = JSON.parse(localStorage.getItem('asfinag_cart') || '[]');
-    } catch(e) {
-        cart = [];
+
+    var CART_KEY = 'asfinag_cart';
+    var CART_URL = '/de/produktkauf/warenkorb/';
+    var SHOP_URL = '/de/maut-produkte/';
+
+    function loadCart() {
+        try {
+            var parsed = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
     }
-    
-    // Сохранение корзины
+
+    var cart = loadCart();
+
+    function normalizePrice(value) {
+        var price = parseFloat(value);
+        return Number.isFinite(price) ? price : 0;
+    }
+
     function saveCart() {
         try {
-            localStorage.setItem('asfinag_cart', JSON.stringify(cart));
-            updateCartBadge();
-        } catch(e) {}
+            localStorage.setItem(CART_KEY, JSON.stringify(cart));
+        } catch (e) {}
+        updateCartBadge();
     }
-    
-    // Обновление бейджа
+
+    function getVariantDefaults(variantCode) {
+        var map = {
+            B26S: { title: '1-Tages-Vignette', price: 9.60 },
+            A26S: { title: '1-Tages-Vignette (Motorrad)', price: 3.70 },
+            B26T: { title: '10-Tages-Vignette', price: 12.80 },
+            A26T: { title: '10-Tages-Vignette (Motorrad)', price: 5.10 },
+            B26M: { title: '2-Monats-Vignette', price: 32.00 },
+            A26M: { title: '2-Monats-Vignette (Motorrad)', price: 12.80 },
+            B26J: { title: 'Jahres-Vignette', price: 106.80 },
+            A26J: { title: 'Jahres-Vignette (Motorrad)', price: 42.40 },
+            SI2A: { title: 'E-Vignette Slowenien PKW (2A)', price: 16.00 },
+            SI2B: { title: 'E-Vignette Slowenien Transporter (2B)', price: 32.00 },
+            SIMO: { title: 'E-Vignette Slowenien Motorrad', price: 8.00 }
+        };
+        return map[variantCode] || null;
+    }
+
+    function inferProductByText(text) {
+        var t = (text || '').toLowerCase();
+        if (!t) return null;
+        if (t.indexOf('motorrad') !== -1 && t.indexOf('jahres') !== -1) return { id: 'A26J', title: 'Jahres-Vignette (Motorrad)', price: 42.40, variantCode: 'A26J' };
+        if (t.indexOf('motorrad') !== -1 && t.indexOf('1-tages') !== -1) return { id: 'A26S', title: '1-Tages-Vignette (Motorrad)', price: 3.70, variantCode: 'A26S' };
+        if (t.indexOf('motorrad') !== -1 && t.indexOf('2-monats') !== -1) return { id: 'A26M', title: '2-Monats-Vignette (Motorrad)', price: 12.80, variantCode: 'A26M' };
+        if (t.indexOf('motorrad') !== -1) return { id: 'A26T', title: '10-Tages-Vignette (Motorrad)', price: 5.10, variantCode: 'A26T' };
+        if (t.indexOf('1-tages') !== -1) return { id: 'B26S', title: '1-Tages-Vignette', price: 9.60, variantCode: 'B26S' };
+        if (t.indexOf('2-monats') !== -1) return { id: 'B26M', title: '2-Monats-Vignette', price: 32.00, variantCode: 'B26M' };
+        if (t.indexOf('jahres') !== -1) return { id: 'B26J', title: 'Jahres-Vignette', price: 106.80, variantCode: 'B26J' };
+        return { id: 'B26T', title: '10-Tages-Vignette', price: 12.80, variantCode: 'B26T' };
+    }
+
     function updateCartBadge() {
         try {
-            const cartLinks = document.querySelectorAll('a[href*="/produktkauf/warenkorb/"], a[href*="/warenkorb/"]');
-            const totalItems = cart.reduce(function(sum, item) { return sum + (item.quantity || 1); }, 0);
-            
-            cartLinks.forEach(function(link) {
-                let badge = link.querySelector('.cart-badge');
-                if (!badge && totalItems > 0) {
+            var links = document.querySelectorAll('a[href*="/produktkauf/warenkorb/"], a[href*="/warenkorb/"]');
+            var count = cart.reduce(function(sum, item) { return sum + (item.quantity || 1); }, 0);
+
+            links.forEach(function(link) {
+                var badge = link.querySelector('.cart-badge, .badge');
+                if (!badge && count > 0) {
                     badge = document.createElement('span');
-                    badge.className = 'cart-badge';
-                    badge.style.cssText = 'position:absolute;top:-8px;right:-12px;background:#ea580c;color:white;border-radius:20px;font-size:10px;padding:2px 6px;min-width:18px;text-align:center;';
+                    badge.className = 'cart-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary';
                     link.style.position = 'relative';
                     link.appendChild(badge);
                 }
                 if (badge) {
-                    badge.textContent = totalItems;
-                    badge.style.display = totalItems > 0 ? '' : 'none';
+                    badge.textContent = count > 0 ? String(count) : '';
+                    badge.style.display = count > 0 ? '' : 'none';
                 }
             });
-        } catch(e) {}
+        } catch (e) {}
     }
-    
-    // Уведомление
-    function showNotification(message) {
-        try {
-            var notif = document.createElement('div');
-            notif.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#28a745;color:white;padding:12px 20px;border-radius:8px;z-index:999999;font-size:14px;';
-            notif.textContent = message;
-            document.body.appendChild(notif);
-            setTimeout(function() { notif.remove(); }, 3000);
-        } catch(e) {}
+
+    function addToCart(product, options) {
+        if (!product) return;
+        var itemId = product.id || product.variantCode || product.title || String(Date.now());
+        var title = product.title || 'Produkt';
+        var price = normalizePrice(product.price);
+        var variantCode = product.variantCode || '';
+
+        var existing = null;
+        for (var i = 0; i < cart.length; i++) {
+            if (cart[i].id === itemId) {
+                existing = cart[i];
+                break;
+            }
+        }
+
+        if (existing) {
+            existing.quantity = (existing.quantity || 1) + 1;
+            if (!existing.price && price) existing.price = price;
+            if (!existing.title && title) existing.title = title;
+        } else {
+            cart.push({
+                id: itemId,
+                title: title,
+                price: price,
+                quantity: 1,
+                variantCode: variantCode
+            });
+        }
+
+        saveCart();
+
+        if (options && options.redirectToCart) {
+            window.location.href = CART_URL;
+        }
     }
-    
-    // Добавление в корзину
-    window.addToCart = function(product) {
-        try {
-            if (!product || !product.id) return;
-            
-            var existing = null;
-            for (var i = 0; i < cart.length; i++) {
-                if (cart[i].id === product.id) {
-                    existing = cart[i];
-                    break;
-                }
-            }
-            
-            if (existing) {
-                existing.quantity = (existing.quantity || 1) + 1;
-            } else {
-                cart.push({
-                    id: product.id,
-                    title: product.title || 'Produkt',
-                    price: parseFloat(product.price) || 0,
-                    quantity: 1,
-                    variantCode: product.variantCode || ''
-                });
-            }
-            saveCart();
-            showNotification(product.title + ' wurde zum Warenkorb hinzugefügt');
-            showCartPopup();
-        } catch(e) {}
-    };
-    
-    // Удаление из корзины
+
+    window.addToCart = addToCart;
+
     window.removeFromCart = function(index) {
-        try {
-            var removed = cart.splice(index, 1);
-            saveCart();
-            showNotification(removed[0].title + ' wurde entfernt');
-            var popup = document.querySelector('.cart-popup');
-            if (popup) showCartPopup();
-            if (window.location.href.indexOf('/warenkorb/') !== -1) {
-                renderCartPage();
-            }
-        } catch(e) {}
+        if (index < 0 || index >= cart.length) return;
+        cart.splice(index, 1);
+        saveCart();
+        renderCartPage();
     };
-    
-    // Обновление количества
+
     window.updateCartQuantity = function(index, quantity) {
-        try {
-            if (quantity <= 0) {
-                window.removeFromCart(index);
-            } else {
-                cart[index].quantity = quantity;
-                saveCart();
-                if (window.location.href.indexOf('/warenkorb/') !== -1) {
-                    renderCartPage();
-                }
-            }
-        } catch(e) {}
-    };
-    
-    // Получение общей суммы
-    window.getCartTotal = function() {
-        var total = 0;
-        for (var i = 0; i < cart.length; i++) {
-            total += cart[i].price * (cart[i].quantity || 1);
+        if (index < 0 || index >= cart.length) return;
+        var value = parseInt(quantity, 10);
+        if (!Number.isFinite(value)) return;
+        if (value <= 0) {
+            window.removeFromCart(index);
+            return;
         }
-        return total;
+        cart[index].quantity = value;
+        saveCart();
+        renderCartPage();
     };
-    
-    // Получение количества
-    window.getCartCount = function() {
-        var count = 0;
-        for (var i = 0; i < cart.length; i++) {
-            count += (cart[i].quantity || 1);
+
+    function getCartTotal() {
+        return cart.reduce(function(sum, item) {
+            return sum + normalizePrice(item.price) * (item.quantity || 1);
+        }, 0);
+    }
+
+    function mapProductFromLink(link) {
+        var href = (link.getAttribute('href') || '').toLowerCase();
+        var text = (link.textContent || '').trim();
+
+        if (href.indexOf('/slowenien/') !== -1) {
+            if (href.indexOf('type=car2b') !== -1) return { id: 'SI2B', title: 'E-Vignette Slowenien Transporter (2B)', price: 32.00, variantCode: 'SI2B' };
+            if (href.indexOf('type=motorbike') !== -1) return { id: 'SIMO', title: 'E-Vignette Slowenien Motorrad', price: 8.00, variantCode: 'SIMO' };
+            return { id: 'SI2A', title: 'E-Vignette Slowenien PKW (2A)', price: 16.00, variantCode: 'SI2A' };
         }
-        return count;
-    };
-    
-    // Показать попап
-    function showCartPopup() {
-        try {
-            var oldPopup = document.querySelector('.cart-popup');
-            if (oldPopup) oldPopup.remove();
-            
-            if (cart.length === 0) return;
-            
-            var cartBtn = document.querySelector('a[href*="/produktkauf/warenkorb/"], a[href*="/warenkorb/"]');
-            if (!cartBtn) return;
-            
-            var popup = document.createElement('div');
-            popup.className = 'cart-popup';
-            popup.style.cssText = 'position:absolute;top:100%;right:0;width:350px;background:white;border-radius:12px;box-shadow:0 5px 20px rgba(0,0,0,0.2);z-index:100000;margin-top:10px;overflow:hidden;';
-            
-            var itemsHtml = '';
-            for (var i = 0; i < cart.length; i++) {
-                var item = cart[i];
-                var subtotal = item.price * (item.quantity || 1);
-                itemsHtml += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #eee;">' +
-                    '<div style="flex:2;"><strong>' + item.title + '</strong><br><small>€ ' + item.price.toFixed(2) + ' x ' + (item.quantity || 1) + '</small></div>' +
-                    '<div><strong>€ ' + subtotal.toFixed(2) + '</strong></div>' +
-                    '<button onclick="removeFromCart(' + i + ')" style="background:none;border:none;color:red;font-size:18px;cursor:pointer;margin-left:10px;">&times;</button>' +
-                '</div>';
-            }
-            
-            var total = window.getCartTotal();
-            var totalWithVat = total * 1.2;
-            
-            popup.innerHTML = '<div style="background:#f8f9fa;padding:12px;font-weight:bold;border-bottom:1px solid #ddd;">Ihr Warenkorb (' + window.getCartCount() + ' Artikel)</div>' +
-                '<div style="max-height:350px;overflow-y:auto;">' + itemsHtml + '</div>' +
-                '<div style="padding:12px;border-top:1px solid #ddd;">' +
-                    '<div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>Zwischensumme:</span><span>€ ' + total.toFixed(2) + '</span></div>' +
-                    '<div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span>MwSt. 20%:</span><span>€ ' + (total*0.2).toFixed(2) + '</span></div>' +
-                    '<div style="display:flex;justify-content:space-between;font-weight:bold;margin-bottom:15px;"><span>Gesamt:</span><span>€ ' + totalWithVat.toFixed(2) + '</span></div>' +
-                    '<button id="cartPopupCheckoutBtn" style="width:100%;padding:10px;background:#ea580c;color:white;border:none;border-radius:8px;cursor:pointer;">Zum Warenkorb</button>' +
-                    '<button id="cartPopupContinueBtn" style="width:100%;margin-top:8px;padding:10px;background:#f8f9fa;border:1px solid #ddd;border-radius:8px;cursor:pointer;">Weiter einkaufen</button>' +
-                '</div>';
-            
-            cartBtn.parentElement.style.position = 'relative';
-            cartBtn.parentElement.appendChild(popup);
-            
-            document.getElementById('cartPopupCheckoutBtn')?.addEventListener('click', function() {
-                window.location.href = '/de/produktkauf/warenkorb/';
-            });
-            document.getElementById('cartPopupContinueBtn')?.addEventListener('click', function() {
-                popup.remove();
-            });
-            
-            setTimeout(function() {
-                function closePopup(e) {
-                    if (!popup.contains(e.target) && !cartBtn.contains(e.target)) {
-                        popup.remove();
-                        document.removeEventListener('click', closePopup);
-                    }
-                }
-                document.addEventListener('click', closePopup);
-            }, 100);
-        } catch(e) {}
+
+        if (href.indexOf('type=moto') !== -1 || href.indexOf('/moto.html') !== -1) {
+            return { id: 'A26T', title: '10-Tages-Vignette (Motorrad)', price: 5.10, variantCode: 'A26T' };
+        }
+
+        if (href.indexOf('/maut-produkte/') !== -1) {
+            return inferProductByText(text);
+        }
+
+        return null;
     }
-    
-    // Рендер страницы корзины
-    function renderCartPage() {
-        try {
-            var main = document.querySelector('main');
-            if (!main || window.location.href.indexOf('/warenkorb/') === -1) return;
-            
-            if (cart.length === 0) {
-                main.innerHTML = '<div class="container py-5 text-center"><div style="max-width:500px;margin:0 auto;background:white;border-radius:12px;padding:40px;"><div style="font-size:64px;margin-bottom:20px;">🛒</div><h2>Ihr Warenkorb ist leer</h2><p style="color:#666;margin:20px 0;">Fügen Sie Produkte hinzu, um fortzufahren.</p><a href="/de/maut-produkte/" style="display:inline-block;padding:10px 20px;background:#ea580c;color:white;text-decoration:none;border-radius:8px;">Weiter einkaufen</a></div></div>';
-                return;
-            }
-            
-            var itemsHtml = '';
-            for (var i = 0; i < cart.length; i++) {
-                var item = cart[i];
-                var subtotal = item.price * (item.quantity || 1);
-                itemsHtml += '<div style="display:flex;justify-content:space-between;align-items:center;padding:15px 0;border-bottom:1px solid #eee;">' +
-                    '<div style="flex:2;"><strong>' + item.title + '</strong><br><small>€ ' + item.price.toFixed(2) + '</small></div>' +
-                    '<div style="width:100px;text-align:center;"><input type="number" value="' + (item.quantity || 1) + '" min="1" style="width:70px;padding:5px;border:1px solid #ddd;border-radius:5px;text-align:center;" onchange="updateCartQuantity(' + i + ', parseInt(this.value))"></div>' +
-                    '<div style="width:100px;text-align:right;font-weight:bold;">€ ' + subtotal.toFixed(2) + '</div>' +
-                    '<div style="width:100px;text-align:right;"><button onclick="removeFromCart(' + i + ')" style="background:none;border:none;color:#dc3545;cursor:pointer;">Entfernen</button></div>' +
-                '</div>';
-            }
-            
-            var total = window.getCartTotal();
-            var totalWithVat = total * 1.2;
-            
-            main.innerHTML = '<div class="container py-4"><h1 class="mb-4">Ihr Warenkorb</h1><div class="row"><div class="col-lg-8"><div style="background:white;border-radius:12px;padding:20px;">' + itemsHtml + '</div></div><div class="col-lg-4 mt-4 mt-lg-0"><div style="background:white;border-radius:12px;padding:20px;"><h4 class="mb-3">Zusammenfassung</h4><div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span>Zwischensumme:</span><span>€ ' + total.toFixed(2) + '</span></div><div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span>MwSt. (20%):</span><span>€ ' + (total*0.2).toFixed(2) + '</span></div><hr><div style="display:flex;justify-content:space-between;font-weight:bold;margin-bottom:20px;"><span>Gesamtsumme:</span><span>€ ' + totalWithVat.toFixed(2) + '</span></div><button onclick="window.location.href=\'/de/produktkauf/produktkonfiguration/zahlungsinformation/\'" style="width:100%;padding:12px;background:#ea580c;color:white;border:none;border-radius:8px;cursor:pointer;">Weiter zur Kasse ➜</button><button onclick="window.location.href=\'/de/maut-produkte/\'" style="width:100%;margin-top:10px;padding:12px;background:#f8f9fa;border:1px solid #ddd;border-radius:8px;cursor:pointer;">Weiter einkaufen</button></div></div></div></div>';
-        } catch(e) {}
+
+    function isPurchaseLink(link) {
+        var href = (link.getAttribute('href') || '').toLowerCase();
+        if (href.indexOf('/de/maut-produkte/') === -1) return false;
+
+        var title = (link.getAttribute('title') || '').toLowerCase();
+        var text = (link.textContent || '').toLowerCase();
+        var id = link.id || '';
+
+        return id.indexOf('SvgImageLinkViewModels_') === 0 ||
+            href.indexOf('?type=') !== -1 ||
+            title.indexOf('kauf') !== -1 ||
+            text.indexOf('kaufen') !== -1;
     }
-    
-    // Перехват форм
+
+    function interceptPurchaseLinks() {
+        var links = document.querySelectorAll('a[href*="/de/maut-produkte/"]');
+
+        for (var i = 0; i < links.length; i++) {
+            var link = links[i];
+            if (link.hasAttribute('data-cart-link-intercepted')) continue;
+            if (!isPurchaseLink(link)) continue;
+
+            link.setAttribute('data-cart-link-intercepted', 'true');
+            link.addEventListener('click', function(e) {
+                var product = mapProductFromLink(this);
+                if (!product) return;
+                e.preventDefault();
+                e.stopPropagation();
+                addToCart(product, { redirectToCart: true });
+            });
+        }
+    }
+
+    function extractProductFromForm(form) {
+        var variantInput = form.querySelector('input[name="VariantCode"]');
+        var nameInput = form.querySelector('input[name="product_name"]');
+        var priceInput = form.querySelector('input[name="product_price"]');
+
+        var variantCode = variantInput ? String(variantInput.value || '').trim() : '';
+        var title = nameInput ? String(nameInput.value || '').trim() : '';
+        var price = priceInput ? normalizePrice(priceInput.value) : 0;
+
+        if (!variantCode && !title && !price) return null;
+
+        var defaults = getVariantDefaults(variantCode);
+        if (!title && defaults) title = defaults.title;
+        if (!price && defaults) price = defaults.price;
+        if (!title) title = 'Digitale Vignette';
+
+        return {
+            id: variantCode || title,
+            title: title,
+            price: price,
+            variantCode: variantCode
+        };
+    }
+
     function interceptForms() {
-        try {
-            var forms = document.querySelectorAll('form');
-            
-            for (var f = 0; f < forms.length; f++) {
-                var form = forms[f];
-                if (form.hasAttribute('data-cart-intercepted')) continue;
-                form.setAttribute('data-cart-intercepted', 'true');
-                
-                form.addEventListener('submit', function(e) {
-                    try {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        var variantCode = '';
-                        var productName = '';
-                        var productPrice = 0;
-                        
-                        var variantInput = this.querySelector('input[name="VariantCode"]');
-                        if (variantInput) variantCode = variantInput.value;
-                        
-                        var nameInput = this.querySelector('input[name="product_name"]');
-                        if (nameInput) productName = nameInput.value;
-                        
-                        var priceInput = this.querySelector('input[name="product_price"]');
-                        if (priceInput) productPrice = parseFloat(priceInput.value);
-                        
-                        if (!productName) {
-                            if (variantCode === 'B26S') productName = '1-Tages-Vignette';
-                            else if (variantCode === 'B26T') productName = '10-Tages-Vignette';
-                            else if (variantCode === 'B26M') productName = '2-Monats-Vignette';
-                            else if (variantCode === 'B26J') productName = 'Jahres-Vignette';
-                            else productName = 'Digitale Vignette';
-                        }
-                        
-                        if (productPrice === 0) {
-                            if (variantCode === 'B26S') productPrice = 9.60;
-                            else if (variantCode === 'B26T') productPrice = 12.80;
-                            else if (variantCode === 'B26M') productPrice = 32.00;
-                            else if (variantCode === 'B26J') productPrice = 106.80;
-                        }
-                        
-                        window.addToCart({
-                            id: variantCode || Date.now().toString(),
-                            title: productName,
-                            price: productPrice,
-                            variantCode: variantCode
-                        });
-                        
-                        return false;
-                    } catch(err) {}
-                });
-            }
-        } catch(e) {}
+        var forms = document.querySelectorAll('form');
+
+        for (var i = 0; i < forms.length; i++) {
+            var form = forms[i];
+            if (form.hasAttribute('data-cart-form-intercepted')) continue;
+            var action = (form.getAttribute('action') || '').toLowerCase();
+            var isCartForm = !!form.querySelector('input[name="VariantCode"],input[name="product_name"],input[name="product_price"]') ||
+                action.indexOf('/produktkonfiguration/submit/') !== -1;
+            if (!isCartForm) continue;
+            form.setAttribute('data-cart-form-intercepted', 'true');
+
+            form.addEventListener('submit', function(e) {
+                var action = (this.getAttribute('action') || '').toLowerCase();
+                var product = extractProductFromForm(this);
+
+                if (!product && action.indexOf('/produktkonfiguration/submit/') !== -1) {
+                    product = { id: 'B26T', title: '10-Tages-Vignette', price: 12.80, variantCode: 'B26T' };
+                }
+
+                if (!product) return;
+                e.preventDefault();
+                e.stopPropagation();
+                addToCart(product, { redirectToCart: true });
+            });
+        }
     }
-    
-    // Инициализация
+
+    function syncQueryProductToCart() {
+        if (window.location.pathname.indexOf('/de/produktkauf/warenkorb/') === -1) return;
+
+        try {
+            var params = new URLSearchParams(window.location.search);
+            var name = (params.get('product_name') || '').trim();
+            var variantCode = (params.get('VariantCode') || '').trim();
+            var price = normalizePrice(params.get('product_price'));
+
+            if (!name && !variantCode && !price) return;
+
+            var defaults = getVariantDefaults(variantCode);
+            if (!name && defaults) name = defaults.title;
+            if (!price && defaults) price = defaults.price;
+
+            var id = variantCode || name;
+            if (!id) return;
+
+            var exists = cart.some(function(item) {
+                return item.id === id;
+            });
+
+            if (!exists) {
+                addToCart({
+                    id: id,
+                    title: name || 'Digitale Vignette',
+                    price: price,
+                    variantCode: variantCode
+                }, { redirectToCart: false });
+            }
+        } catch (e) {}
+    }
+
+    function renderCartPage() {
+        if (window.location.pathname.indexOf('/de/produktkauf/warenkorb/') === -1) return;
+
+        var main = document.querySelector('main');
+        if (!main) return;
+
+        if (cart.length === 0) {
+            main.innerHTML = '<div class="container py-5 text-center"><h1>Ihr Warenkorb</h1><p class="mt-3">Ihr Warenkorb ist leer.</p><a class="btn btn-primary mt-2" href="' + SHOP_URL + '">Weiter einkaufen</a></div>';
+            return;
+        }
+
+        var itemsHtml = '';
+        for (var i = 0; i < cart.length; i++) {
+            var item = cart[i];
+            var qty = item.quantity || 1;
+            var subtotal = normalizePrice(item.price) * qty;
+            itemsHtml += '<div style="display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e7eb;padding:12px 0;">' +
+                '<div style="flex:1;"><div style="font-weight:600;">' + item.title + '</div><small>€ ' + normalizePrice(item.price).toFixed(2) + '</small></div>' +
+                '<div><input type="number" min="1" max="999" aria-label="Menge" value="' + qty + '" onchange="updateCartQuantity(' + i + ', this.value)" style="width:64px;text-align:center;" /></div>' +
+                '<div style="min-width:90px;text-align:right;font-weight:600;">€ ' + subtotal.toFixed(2) + '</div>' +
+                '<div><button type="button" onclick="removeFromCart(' + i + ')" style="background:none;border:none;color:#dc2626;cursor:pointer;">Entfernen</button></div>' +
+                '</div>';
+        }
+
+        var total = getCartTotal();
+
+        main.innerHTML = '<div class="container py-4"><h1 class="mb-4">Ihr Warenkorb</h1><div class="row"><div class="col-12 col-lg-8"><div style="background:#fff;border-radius:12px;padding:20px;">' + itemsHtml + '</div></div>' +
+            '<div class="col-12 col-lg-4 mt-4 mt-lg-0"><div style="background:#fff;border-radius:12px;padding:20px;">' +
+            '<h3 class="h5 mb-3">Gesamtsumme</h3>' +
+            '<div style="display:flex;justify-content:space-between;font-weight:700;margin-bottom:16px;"><span>Gesamt</span><span>€ ' + total.toFixed(2) + '</span></div>' +
+            '<a class="btn btn-primary w-100" aria-label="Jetzt konfigurieren und bestellen" href="/de/produktkauf/produktkonfiguration/">Jetzt konfigurieren und bestellen ➜</a>' +
+            '<a class="btn btn-outline-secondary w-100 mt-2" href="' + SHOP_URL + '">Weiter einkaufen</a>' +
+            '</div></div></div></div>';
+    }
+
     function init() {
-        try {
-            interceptForms();
-            updateCartBadge();
-            renderCartPage();
-            
-            var cartBtn = document.querySelector('a[href*="/produktkauf/warenkorb/"], a[href*="/warenkorb/"]');
-            if (cartBtn && !cartBtn.hasAttribute('data-cart-click')) {
-                cartBtn.setAttribute('data-cart-click', 'true');
-                cartBtn.addEventListener('click', function(e) {
-                    if (window.location.href.indexOf('/warenkorb/') === -1) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        showCartPopup();
-                        return false;
-                    }
-                });
-            }
-        } catch(e) {}
+        interceptForms();
+        interceptPurchaseLinks();
+        syncQueryProductToCart();
+        updateCartBadge();
+        renderCartPage();
     }
-    
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
         init();
     }
-    
-    // Наблюдатель
+
     if (window.MutationObserver) {
         var observer = new MutationObserver(function() {
             interceptForms();
+            interceptPurchaseLinks();
             updateCartBadge();
         });
-        observer.observe(document.body, { childList: true, subtree: true });
+        observer.observe(document.documentElement, { childList: true, subtree: true });
     }
 })();
