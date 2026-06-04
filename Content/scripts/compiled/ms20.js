@@ -70,7 +70,7 @@
                 var badge = link.querySelector('.cart-badge, .badge');
                 if (!badge && count > 0) {
                     badge = document.createElement('span');
-                    badge.className = 'cart-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-blue';
+                    badge.className = 'cart-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary';
                     link.style.position = 'relative';
                     link.appendChild(badge);
                 }
@@ -130,7 +130,8 @@
     window.updateCartQuantity = function(index, quantity) {
         if (index < 0 || index >= cart.length) return;
         var value = parseInt(quantity, 10);
-        if (!Number.isFinite(value) || value <= 0) {
+        if (!Number.isFinite(value)) return;
+        if (value <= 0) {
             window.removeFromCart(index);
             return;
         }
@@ -246,7 +247,6 @@
                 if (!product) return;
                 e.preventDefault();
                 e.stopPropagation();
-                addToCart(product, { redirectToCart: true });
                 addToCart(product, { redirectToCart: true });
             });
         }
