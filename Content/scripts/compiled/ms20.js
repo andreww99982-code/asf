@@ -303,7 +303,7 @@
             var subtotal = normalizePrice(item.price) * qty;
             itemsHtml += '<div style="display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e7eb;padding:12px 0;">' +
                 '<div style="flex:1;"><div style="font-weight:600;">' + item.title + '</div><small>€ ' + normalizePrice(item.price).toFixed(2) + '</small></div>' +
-                '<div><input type="number" min="1" value="' + qty + '" onchange="updateCartQuantity(' + i + ', this.value)" style="width:64px;text-align:center;" /></div>' +
+                '<div><input type="number" min="1" max="999" value="' + qty + '" onchange="updateCartQuantity(' + i + ', this.value)" style="width:64px;text-align:center;" /></div>' +
                 '<div style="min-width:90px;text-align:right;font-weight:600;">€ ' + subtotal.toFixed(2) + '</div>' +
                 '<div><button type="button" onclick="removeFromCart(' + i + ')" style="background:none;border:none;color:#dc2626;cursor:pointer;">Entfernen</button></div>' +
                 '</div>';
