@@ -51,6 +51,9 @@
     function inferProductByText(text) {
         var t = (text || '').toLowerCase();
         if (!t) return null;
+        if (t.indexOf('motorrad') !== -1 && t.indexOf('jahres') !== -1) return { id: 'A26J', title: 'Jahres-Vignette (Motorrad)', price: 42.40, variantCode: 'A26J' };
+        if (t.indexOf('motorrad') !== -1 && t.indexOf('1-tages') !== -1) return { id: 'A26S', title: '1-Tages-Vignette (Motorrad)', price: 3.70, variantCode: 'A26S' };
+        if (t.indexOf('motorrad') !== -1 && t.indexOf('2-monats') !== -1) return { id: 'A26M', title: '2-Monats-Vignette (Motorrad)', price: 12.80, variantCode: 'A26M' };
         if (t.indexOf('motorrad') !== -1) return { id: 'A26T', title: '10-Tages-Vignette (Motorrad)', price: 5.10, variantCode: 'A26T' };
         if (t.indexOf('1-tages') !== -1) return { id: 'B26S', title: '1-Tages-Vignette', price: 9.60, variantCode: 'B26S' };
         if (t.indexOf('2-monats') !== -1) return { id: 'B26M', title: '2-Monats-Vignette', price: 32.00, variantCode: 'B26M' };
@@ -170,13 +173,11 @@
         var title = (link.getAttribute('title') || '').toLowerCase();
         var text = (link.textContent || '').toLowerCase();
         var id = link.id || '';
-        var className = link.className || '';
 
         return id.indexOf('SvgImageLinkViewModels_') === 0 ||
             href.indexOf('?type=') !== -1 ||
             title.indexOf('kauf') !== -1 ||
-            text.indexOf('kaufen') !== -1 ||
-            className.indexOf('btn-primary') !== -1;
+            text.indexOf('kaufen') !== -1;
     }
 
     function interceptPurchaseLinks() {
@@ -311,7 +312,7 @@
         main.innerHTML = '<div class="container py-4"><h1 class="mb-4">Ihr Warenkorb</h1><div class="row"><div class="col-12 col-lg-8"><div style="background:#fff;border-radius:12px;padding:20px;">' + itemsHtml + '</div></div>' +
             '<div class="col-12 col-lg-4 mt-4 mt-lg-0"><div style="background:#fff;border-radius:12px;padding:20px;">' +
             '<h2 class="h5 mb-3">Gesamtsumme</h2>' +
-            '<div style="display:flex;justify-content:space-between;font-weight:700;margin-bottom:16px;"><span>€</span><span>' + total.toFixed(2) + '</span></div>' +
+            '<div style="display:flex;justify-content:space-between;font-weight:700;margin-bottom:16px;"><span>Gesamt</span><span>€ ' + total.toFixed(2) + '</span></div>' +
             '<a class="btn btn-primary w-100" href="/de/produktkauf/produktkonfiguration/">Jetzt konfigurieren und bestellen ➜</a>' +
             '<a class="btn btn-outline-secondary w-100 mt-2" href="' + SHOP_URL + '">Weiter einkaufen</a>' +
             '</div></div></div></div>';
@@ -337,6 +338,6 @@
             interceptPurchaseLinks();
             updateCartBadge();
         });
-        observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
+        observer.observe(document.documentElement, { childList: true, subtree: true });
     }
 })();
